@@ -12,11 +12,23 @@ run/ops.json
 run/whitelist.json
 run/banned-players.json
 run/banned-ips.json
+run/usercache.json
 run/eula.txt
 run/logs/
 run/world/
 run/world_*/
+server.jar
+paper.jar
+server.properties
+ops.json
+whitelist.json
+banned-players.json
+banned-ips.json
+usercache.json
+eula.txt
 logs/
+world/
+world_*/
 *.log
 
 # IDE
