@@ -1,0 +1,14 @@
+name: DemoPlugin
+version: 1.0.0
+main: com.demo.DemoPlugin
+api-version: 1.21
+description: 演示插件，用于验证服务端内核的插件加载能力
+author: chenhuitony
+website: https://github.com/chenhuitony/mc-launcher
+commands:
+  demo:
+    description: 演示指令
+    usage: /demo [参数]
+    aliases: [d, dem]
+  greet:
+    description: 打招呼

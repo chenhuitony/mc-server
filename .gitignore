@@ -1,0 +1,27 @@
+# Compiled output
+out/
+*.class
+
+# Runtime
+run/plugins/*.jar
+!run/plugins/README.md
+run/server.properties
+run/logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Build artifacts
+*.jar
+!test-plugin/src/main/resources/*.yml
+
+# Temp
+tmp_*/
+*.tmp
