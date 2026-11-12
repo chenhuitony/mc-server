@@ -87,24 +87,23 @@ public class PluginManagerImpl implements PluginManager {
         File[] jars = pluginsDir.listFiles((d, n) ->
                 n.toLowerCase().endsWith(".jar") && !n.startsWith("."));
         if (jars == null || jars.length == 0) {
-            Log.info("plugins 目录中没有插件");
+            Log.info("load.no_plugins");
             return;
         }
-        Log.info("发现 " + jars.length + " 个插件文件，开始扫描");
+        Log.info("scan.found", jars.length);
 
         // 1. 解析元数据
         List<LoadedPlugin> all = new ArrayList<>();
         for (File jar : jars) {
             LoadedPlugin lp = new LoadedPlugin(jar);
             if (!lp.loadMetadata()) {
-                Log.error("插件 " + jar.getName() + " 元数据无效："
-                        + String.join("；", lp.getErrors()));
+                Log.error("load.bad_metadata", jar.getName(), String.join("; ", lp.getErrors()));
                 continue;
             }
             loaded.put(lp.getName().toLowerCase(), lp);
             all.add(lp);
-            Log.info("识别插件 " + lp.getDescription().getFullName()
-                    + "（主类 " + lp.getDescription().getMainClass() + "）");
+            Log.info("scan.identified", lp.getDescription().getName(),
+                    lp.getDescription().getVersion(), lp.getDescription().getMainClass());
         }
 
         // 2. 依赖排序
@@ -117,7 +116,7 @@ public class PluginManagerImpl implements PluginManager {
             if (activate(lp)) ok++; else failed++;
         }
 
-        Log.info("插件加载完成：成功 " + ok + " 个，失败 " + failed + " 个");
+        Log.info("load.summary", ok, failed);
     }
 
     /** 检查硬依赖是否都已成功加载。 */
@@ -125,7 +124,7 @@ public class PluginManagerImpl implements PluginManager {
         for (String dep : lp.getDescription().getDepend()) {
             LoadedPlugin d = loaded.get(dep.toLowerCase());
             if (d == null || !d.isEnabled()) {
-                Log.error("插件 " + lp.getName() + " 缺少必需依赖 " + dep + "，跳过");
+                Log.error("load.missing_depend", lp.getName(), dep);
                 return false;
             }
         }
@@ -152,13 +151,13 @@ public class PluginManagerImpl implements PluginManager {
         String key = lp.getName().toLowerCase();
         if (done.contains(key)) return;
         if (!visiting.add(key)) {
-            Log.warn("检测到插件依赖循环，涉及 " + lp.getName() + "，将按发现顺序加载");
+            Log.warn("load.depend_cycle", lp.getName());
             return;
         }
         for (String dep : lp.getDescription().getDepend()) {
             LoadedPlugin d = byName.get(dep.toLowerCase());
             if (d != null) visit(d, byName, done, visiting, out);
-            else Log.warn("插件 " + lp.getName() + " 的硬依赖 " + dep + " 未找到");
+            else Log.warn("load.depend_not_found", lp.getName(), dep);
         }
         for (String dep : lp.getDescription().getSoftDepend()) {
             LoadedPlugin d = byName.get(dep.toLowerCase());
@@ -170,19 +169,17 @@ public class PluginManagerImpl implements PluginManager {
 
     /** 实例化 + 注入 + 生命周期。 */
     private boolean activate(LoadedPlugin lp) {
-        Log.info("加载插件 " + lp.getDescription().getFullName());
+        Log.info("load.plugin", lp.getDescription().getName(), lp.getDescription().getVersion());
         lp.instantiate(getClass().getClassLoader());
         if (lp.getInstance() == null) {
-            Log.error("插件 " + lp.getName() + " 实例化失败："
-                    + String.join("；", lp.getErrors()));
+            Log.error("load.error_instantiate", lp.getName(), String.join("; ", lp.getErrors()));
             return false;
         }
         lp.inject(server, pluginsDir);
 
         lp.callLifecycle("onLoad");
         if (!lp.getErrors().isEmpty()) {
-            Log.error("插件 " + lp.getName() + " onLoad 出错："
-                    + String.join("；", lp.getErrors()));
+            Log.error("load.error_onload", lp.getName(), String.join("; ", lp.getErrors()));
             lp.getErrors().clear();
         }
 
@@ -191,15 +188,14 @@ public class PluginManagerImpl implements PluginManager {
 
         lp.callLifecycle("onEnable");
         if (!lp.getErrors().isEmpty()) {
-            Log.error("插件 " + lp.getName() + " onEnable 出错："
-                    + String.join("；", lp.getErrors()));
+            Log.error("load.error_onenable", lp.getName(), String.join("; ", lp.getErrors()));
             lp.getErrors().clear();
             return false;
         }
 
         lp.setEnabled(true);
         enabledOrder.add(lp.getInstance());
-        Log.ok("插件 " + lp.getDescription().getFullName() + " 已启用");
+        Log.ok("load.enabled", lp.getDescription().getName(), lp.getDescription().getVersion());
 
         // 若插件入口类是 Listener 但没在 onEnable 里手动注册，这里补注册。
         // 已被手动注册过的监听器实例会被 registerEvents 去重。
@@ -235,7 +231,7 @@ public class PluginManagerImpl implements PluginManager {
         try {
             plugin.onEnable();
         } catch (Throwable e) {
-            Log.error("启用插件 " + plugin.getName() + " 失败：" + e.getMessage());
+            Log.error("load.enable_fail", plugin.getName(), e.getMessage());
         }
     }
 
@@ -245,7 +241,7 @@ public class PluginManagerImpl implements PluginManager {
         try {
             plugin.onDisable();
         } catch (Throwable e) {
-            Log.error("禁用插件 " + plugin.getName() + " 时出错：" + e.getMessage());
+            Log.error("load.disable_fail", plugin.getName(), e.getMessage());
         }
         server.getScheduler().cancelTasks(plugin);
         enabledOrder.remove(plugin);
@@ -254,7 +250,7 @@ public class PluginManagerImpl implements PluginManager {
                 e.getValue().setEnabled(false);
             }
         }
-        Log.info("插件 " + plugin.getName() + " 已禁用");
+        Log.info("server.disabled", plugin.getName());
     }
 
     /** 按加载的逆序禁用全部插件。 */
@@ -315,12 +311,12 @@ public class PluginManagerImpl implements PluginManager {
                 EventHandler ann = m.getAnnotation(EventHandler.class);
                 if (ann == null) continue;
                 if (m.getParameterCount() != 1) {
-                    Log.warn("监听器方法 " + m.getName() + " 参数数量不为 1，已忽略");
+                    Log.warn("load.listener_bad_params", m.getName());
                     continue;
                 }
                 Class<?> param = m.getParameterTypes()[0];
                 if (!Event.class.isAssignableFrom(param)) {
-                    Log.warn("监听器方法 " + m.getName() + " 参数不是 Event，已忽略");
+                    Log.warn("load.listener_not_event", m.getName());
                     continue;
                 }
                 boolean dup = false;
@@ -341,7 +337,7 @@ public class PluginManagerImpl implements PluginManager {
             list.sort(Comparator.comparingInt(h -> h.priority.ordinal()));
         }
         if (count > 0) {
-            Log.info("插件 " + plugin.getName() + " 注册了 " + count + " 个事件处理器");
+            Log.info("load.events", plugin.getName(), count);
         }
     }
 
@@ -356,9 +352,8 @@ public class PluginManagerImpl implements PluginManager {
                 h.method.invoke(h.listener, event);
             } catch (Throwable e) {
                 Throwable cause = e.getCause() == null ? e : e.getCause();
-                Log.error("插件 " + h.plugin.getName() + " 的事件处理器 "
-                        + h.method.getName() + " 抛出异常："
-                        + cause.getClass().getSimpleName() + ": " + cause.getMessage());
+                Log.error("load.event_handler_error", h.plugin.getName(), h.method.getName(),
+                        cause.getClass().getSimpleName() + ": " + cause.getMessage());
             }
         }
     }
@@ -401,8 +396,8 @@ public class PluginManagerImpl implements PluginManager {
         try {
             return entry.executor.onCommand(sender, command, label, args);
         } catch (Throwable e) {
-            Log.error("执行指令 /" + label + " 时插件 " + entry.plugin.getName()
-                    + " 抛出异常：" + e.getClass().getSimpleName() + ": " + e.getMessage());
+            Log.error("error.cmd_exception", label, entry.plugin.getName(),
+                    e.getClass().getSimpleName() + ": " + e.getMessage());
             return false;
         }
     }

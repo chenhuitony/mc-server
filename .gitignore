@@ -1,12 +1,22 @@
 # Compiled output
 out/
 *.class
+build/sources.txt
 
 # Runtime
+run/server.jar
+run/paper.jar
 run/plugins/*.jar
-!run/plugins/README.md
 run/server.properties
+run/ops.json
+run/whitelist.json
+run/banned-players.json
+run/banned-ips.json
+run/eula.txt
 run/logs/
+run/world/
+run/world_*/
+logs/
 *.log
 
 # IDE
@@ -18,10 +28,12 @@ run/logs/
 Thumbs.db
 .DS_Store
 
-# Build artifacts
+# Build artifacts (keep the packaged jar)
 *.jar
+!build/mc-server.jar
 !test-plugin/src/main/resources/*.yml
 
 # Temp
 tmp_*/
 *.tmp
+*.txt.bak

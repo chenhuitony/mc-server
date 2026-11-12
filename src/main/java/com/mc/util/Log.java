@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * 日志与中文控制台输出。
+ * 日志与控制台输出（支持 i18n）。
  *
  * <p>编码策略：真实控制台时跟随控制台编码（Windows 中文环境常为 GBK）；
  * 被重定向到管道或文件时统一 UTF-8，避免字节错乱。
@@ -60,10 +60,20 @@ public final class Log {
         }
     }
 
-    public static void info(String m)  { emit(ts() + " [INFO] " + m); }
-    public static void ok(String m)    { emit(ts() + " [ OK ] " + m); }
-    public static void warn(String m)  { emit(ts() + " [WARN] " + m); }
-    public static void error(String m) { emit(ts() + "[ERROR] " + m); }
+    // --- 日志输出：无参数时按原文；有参数时按 i18n key 查表 ---
+
+    private static String resolve(String key, Object... args) {
+        // 无参数时：若是已知的 i18n key 就查表，否则按原文输出（兼容直接传中文的旧代码）
+        if (args == null || args.length == 0) {
+            return I18n.has(key) ? I18n.get(key) : key;
+        }
+        return I18n.get(key, args);
+    }
+
+    public static void info(String key, Object... args)  { emit(ts() + " [INFO] " + resolve(key, args)); }
+    public static void ok(String key, Object... args)    { emit(ts() + " [ OK ] " + resolve(key, args)); }
+    public static void warn(String key, Object... args)  { emit(ts() + " [WARN] " + resolve(key, args)); }
+    public static void error(String key, Object... args) { emit(ts() + "[ERROR] " + resolve(key, args)); }
 
     /** 插件输出的原样日志，不重复加时间戳前缀时使用。 */
     public static void raw(String m)   { emit(m); }

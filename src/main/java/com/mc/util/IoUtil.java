@@ -26,6 +26,21 @@ public final class IoUtil {
         return new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
     }
 
+    /** 读取一个 URL 的全部文本（UTF-8）。 */
+    public static String readUrl(String url) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestProperty("User-Agent", "MCServer/1.0");
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
+        int code = conn.getResponseCode();
+        if (code != 200) throw new RuntimeException("HTTP " + code + " " + url);
+        try (InputStream in = conn.getInputStream()) {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            copyStream(in, bos);
+            return new String(bos.toByteArray(), StandardCharsets.UTF_8);
+        }
+    }
+
     public static void writeAll(File f, String text) throws Exception {
         File parent = f.getParentFile();
         if (parent != null) parent.mkdirs();

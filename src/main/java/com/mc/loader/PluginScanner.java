@@ -1,6 +1,7 @@
 package com.mc.loader;
 
 import com.mc.plugin.LoadedPlugin;
+import com.mc.util.I18n;
 import com.mc.util.Log;
 
 import java.io.File;
@@ -61,7 +62,7 @@ public class PluginScanner {
             PluginLoader loader = findLoader(jar);
             if (loader == null) {
                 result.unknown.add(jar);
-                Log.warn("无法识别的文件（没有已知的插件元数据）：" + jar.getName());
+                Log.warn("scanner.unknown", jar.getName());
                 continue;
             }
 
@@ -92,32 +93,29 @@ public class PluginScanner {
 
     /** 打印扫描报告。 */
     public void printReport(ScanResult r) {
-        Log.info("──────── 插件扫描报告 ────────");
+        Log.info("scanner.header");
         if (!r.byEcosystem.isEmpty()) {
-            StringBuilder sb = new StringBuilder("生态分布：");
+            StringBuilder sb = new StringBuilder(I18n.get("scanner.ecosystem"));
             for (Map.Entry<String, Integer> e : r.byEcosystem.entrySet()) {
                 sb.append(e.getKey()).append(" ×").append(e.getValue()).append("  ");
             }
             Log.info(sb.toString().trim());
         }
-        Log.info("可运行：" + r.runnable.size()
-                + "  仅识别：" + r.recognizedOnly.size()
-                + "  失败：" + r.failed.size()
-                + "  未知：" + r.unknown.size());
+        Log.info("scanner.summary", r.runnable.size(), r.recognizedOnly.size(), r.failed.size(), r.unknown.size());
 
         for (LoadedPlugin lp : r.runnable) {
-            Log.ok("  [可运行] " + lp.getDescription().getFullName());
+            Log.ok("scanner.runnable_item", lp.getDescription().getFullName());
         }
         for (LoadedPlugin lp : r.recognizedOnly) {
-            Log.warn("  [仅识别] " + lp.getDescription().getFullName()
-                    + " — " + String.join("；", lp.getWarnings()));
+            Log.warn("scanner.identified_item", lp.getDescription().getFullName(),
+                    String.join("；", lp.getWarnings()));
         }
         for (LoadedPlugin lp : r.failed) {
-            Log.error("  [失败]   " + lp.getName() + " — " + String.join("；", lp.getErrors()));
+            Log.error("scanner.failed_item", lp.getName(), String.join("；", lp.getErrors()));
         }
         for (File f : r.unknown) {
-            Log.warn("  [未知]   " + f.getName());
+            Log.warn("scanner.unknown_item", f.getName());
         }
-        Log.info("──────────────────────────────");
+        Log.info("scanner.footer");
     }
 }

@@ -3,7 +3,19 @@
 **作者：chenhuitony**
 
 > 一个从零手写的 Minecraft 服务端内核，实现 Bukkit API 子集，能真实加载并运行 Paper/Spigot/Bukkit 插件 JAR。
-> 无任何第三方依赖（纯 JDK），单文件 60KB 级别，适合学习插件加载原理、二次开发或作为轻量级插件测试环境。
+> 也可作为**原版服务端的外壳**：自动下载并运行官方 `server.jar`，把控制台输出翻译为中文。
+> 零第三方依赖（纯 JDK），打包后 `build/mc-server.jar` 约 300KB。
+
+---
+
+## 两种运行模式
+
+| 模式 | 启动方式 | 说明 |
+|------|----------|------|
+| **内核模式**（默认） | `start.bat` | 自研 Bukkit API 子集，直接加载 `plugins/` 里的插件 JAR，无网络/世界层 |
+| **外壳模式** | `start-shell.bat` | 自动下载官方 `server.jar` 并运行，完整原版功能，控制台输出翻译为中文 |
+
+两种模式都在同一个 JAR 里，用 `--shell vanilla` 切换。
 
 ---
 
@@ -12,13 +24,134 @@
 | 项目 | 说明 |
 |------|------|
 | **零依赖** | 仅需 JDK 21+，无 Maven/Gradle，无外部 JAR |
-| **真实插件加载** | 实现 `JavaPlugin`、`PluginManager`、`BukkitScheduler`、`ServicesManager` 等核心 API，Vault、LuckPerms 等主流插件可直接放入 `plugins/` 运行 |
-| **多生态识别** | 自动识别 Paper/Spigot/Bukkit/Fabric/Forge 插件，扫描时报告「可运行 / 仅识别 / 需依赖 / 失败」 |
-| **中文控制台** | 启动横幅、日志、报错全部中文，UTF-8 编码 |
-| **20 TPS 主循环** | 同步/异步任务调度、事件总线、指令分发完整实现 |
+| **真实插件加载** | 实现 `JavaPlugin`、`PluginManager`、`BukkitScheduler`、`ServicesManager` 等核心 API，Vault 等插件可直接运行 |
+| **原版外壳** | 从 Mojang 清单解析版本、下载 `server.jar`（SHA-1 校验）、启动并翻译控制台 |
+| **中英双语** | `--lang zh_CN` / `--lang en_US`，覆盖日志、指令、扫描报告、状态 |
+| **原版指令集** | `list`/`time`/`seed`/`difficulty`/`gamemode`/`gamerule`/`op`/`deop`/`ban`/`pardon`/`banlist`/`ban-ip`/`whitelist`/`kick`/`say`/`me`/`tell`/`save-all`/`status`/`stop` |
+| **原版配置** | 生成与官方键名一致的 `server.properties`（含中文注释），`ops.json`/`whitelist.json`/`banned-*.json` 格式互通 |
+| **多生态识别** | 自动识别 Paper/Spigot/Bukkit/Fabric/Forge，报告「可运行 / 仅识别 / 需依赖 / 失败」 |
+| **20 TPS 主循环** | 同步/异步任务调度、事件总线、指令分发 |
 | **配置系统** | `FileConfiguration` / `YamlConfiguration` 兼容插件读写 `config.yml` |
-| **权限/经济服务** | `ServicesManager` 让 Vault 等服务插件注册/查找服务实现 |
-| **跨平台** | Windows/Linux/macOS 均可运行 |
+| **跨平台** | Windows / Linux / macOS |
+
+---
+
+## 快速开始
+
+### 1. 环境
+- **JDK 21+**（推荐 Eclipse Temurin 21/25）
+- Windows CMD / PowerShell，或 Linux/macOS 终端
+
+### 2. 编译打包
+```cmd
+build.bat
+```
+输出 `build/mc-server.jar`。
+
+### 3. 运行
+
+**内核模式**（自研内核加载插件）：
+```cmd
+start.bat
+```
+或
+```cmd
+java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar build/mc-server.jar --dir run
+```
+
+**外壳模式**（真实原版服务端）：
+```cmd
+start-shell.bat
+```
+或指定版本：
+```cmd
+java -jar build/mc-server.jar --dir run --shell vanilla --version 1.21.8
+```
+
+### 4. 命令行参数
+
+| 参数 | 说明 |
+|------|------|
+| `--dir <目录>` | 运行目录（默认当前目录） |
+| `--lang zh_CN\|en_US` | 界面语言，默认 zh_CN |
+| `--shell vanilla\|paper` | 启用外壳模式 |
+| `--version <MC版本>` | 外壳模式下指定下载版本，默认最新正式版 |
+| `--scan-only` | 只扫描插件并退出 |
+| `--help` | 显示帮助 |
+
+---
+
+## 插件
+
+放到 `run/plugins/`：
+
+```text
+run/plugins/
+├── Vault-34315.jar
+├── YourPlugin.jar
+└── ...
+```
+
+---
+
+## 原版指令集
+
+内核模式下可用（语义与原版对齐）：
+
+| 分类 | 指令 |
+|------|------|
+| 信息 | `plugins`/`pl`、`version`/`ver`、`tps`、`status`、`help` |
+| 世界 | `time`、`seed`、`difficulty`、`gamemode`、`gamerule`、`save-all` |
+| 玩家 | `list`、`op`、`deop`、`ban`、`pardon`、`banlist`、`ban-ip`、`pardon-ip`、`kick`、`whitelist on\|off\|list\|add\|remove` |
+| 服务端 | `stop`/`exit`/`quit`、`reload`、`say`、`me`、`tell` |
+| 需要世界 | `give`、`tp`、`summon`、`effect`、`playsound`、`weather` 等会明确提示「本内核不实现世界」 |
+
+> 外壳模式下，以上指令由真实原版服务端处理，功能完整。
+
+---
+
+## 配置文件
+
+首次启动自动生成：
+
+| 文件 | 说明 |
+|------|------|
+| `server.properties` | 与原版键名一致，含中英文注释 |
+| `ops.json` | OP 列表（UUID v3 离线 UUID，与原版一致） |
+| `whitelist.json` | 白名单 |
+| `banned-players.json` | 玩家封禁 |
+| `banned-ips.json` | IP 封禁 |
+| `eula.txt` | 外壳模式下自动写 `eula=true` |
+
+这些文件与官方服务端**格式互通**，可直接复制已有文件过来。
+
+---
+
+## API 兼容性
+
+已实现：
+- `JavaPlugin` 生命周期：`onLoad` → `onEnable` → `onDisable`
+- `PluginManager`：加载、指令、事件、权限节点
+- `BukkitScheduler`：`runTask`/`runTaskLater`/`runTaskTimer` + 异步版本，返回 `BukkitTask`
+- `ServicesManager`：`register`/`load`/`getRegistration`/`getKnownServices`
+- `Configuration`：`FileConfiguration`/`YamlConfiguration`/`MemorySection`
+- `Command` 体系：`CommandExecutor`（真实签名）、`TabCompleter`、`PluginCommand`
+- 事件总线：`Event`/`Listener`/`EventPriority`/`@EventHandler`
+- `Bukkit` 静态入口：`getServer()`/`getPluginManager()`/`getScheduler()`/`getServicesManager()`/`getConsoleSender()`/`broadcastMessage()`
+- `OfflinePlayer`/`Player`/`Permission`/`PermissionDefault`
+- 精简 Gson 兼容层（`com.google.gson.*`），让引用 Gson 的插件能链接
+
+**不支持**：依赖 NMS (`net.minecraft.*`)、CraftBukkit 内部实现、Mixin、Fabric/Forge 加载器的插件或模组。这类会在加载时明确报错，并提示缺哪个类。
+
+---
+
+## 实测结果
+
+| 插件 | 结果 |
+|------|------|
+| 内置 DemoPlugin | ✅ 完整运行（生命周期、事件、指令、调度器、数据目录） |
+| Vault 1.7.3 | ✅ 加载并启用（注册服务、权限系统、事件） |
+| LuckPerms 5.5.71 | ⚠️ 识别成功，缺 Guava/Adventure（其自身未 shade），报错清晰 |
 
 ---
 
@@ -26,183 +159,28 @@
 
 ```
 mc-server/
-├── src/main/java/           # 源码
-│   ├── com/mc/              # 内核实现
-│   │   ├── util/            # YAML/JSON/日志/JUL桥接
-│   │   ├── plugin/          # 插件类加载器、已加载插件模型
+├── build/
+│   └── mc-server.jar        # 打包产物
+├── src/main/java/
+│   ├── com/mc/
+│   │   ├── util/            # YAML/JSON/日志/i18n/server.properties/玩家名单
+│   │   ├── plugin/          # 类加载器、已加载插件模型
 │   │   ├── server/          # McServer、调度器、服务管理器、插件管理器
-│   │   ├── loader/          # Paper/Fabric/Forge 加载器适配 + 扫描器
-│   │   └── Main.java        # 入口（--dir、--scan-only、--help）
-│   └── org/bukkit/          # Bukkit API 子集实现
-│       ├── command/         # Command、PluginCommand、TabCompleter...
-│       ├── configuration/   # ConfigurationSection、MemorySection...
-│       ├── configuration/file/  # FileConfiguration、YamlConfiguration...
-│       ├── entity/          # Player、OfflinePlayer
-│       ├── event/           # Event、Listener、EventPriority...
-│       ├── permissions/     # Permission、PermissionDefault
-│       ├── plugin/          # Plugin、JavaPlugin、PluginManager...
-│       ├── scheduler/       # BukkitScheduler、BukkitTask
-│       ├── craftbukkit/     # CraftServer 标记类（供版本探测）
-│       └── Bukkit.java      # 静态工具入口
-├── test-plugin/             # 自带演示插件
+│   │   ├── loader/          # Paper/Fabric/Forge 适配 + 扫描器
+│   │   ├── shell/           # 外壳模式：下载器、启动器、控制台翻译
+│   │   └── Main.java        # 入口
+│   └── org/bukkit/          # Bukkit API 子集
+├── test-plugin/             # 演示插件
 ├── run/                     # 运行目录
-│   └── plugins/             # 放插件 JAR 的地方
-├── build.bat                # 编译脚本（ASCII-only）
-├── start.bat                # 启动脚本
-└── README.md                # 本文件
+├── build.bat                # 编译打包
+├── start.bat                # 内核模式启动
+├── start-shell.bat          # 外壳模式启动
+├── README.md
+└── LICENSE (MIT)
 ```
-
----
-
-## 快速开始
-
-### 1. 环境要求
-- **JDK 21+**（推荐 Eclipse Temurin 21/25）
-- Windows PowerShell / CMD，或 Linux/macOS 终端
-
-### 2. 编译
-```cmd
-build.bat
-```
-输出：`out/` 目录下生成所有 `.class` 文件。
-
-### 3. 准备插件
-将 Paper/Spigot/Bukkit 插件 JAR 放入 `run/plugins/`：
-```text
-run/plugins/
-├── Vault-34315.jar
-├── LuckPerms-Bukkit-5.5.71.jar
-└── YourPlugin.jar
-```
-> ⚠️ LuckPerms 需要 Guava/Adventure 库，本内核不内置，会报「仅识别/加载失败」，属正常现象。
-
-### 4. 启动
-```cmd
-start.bat
-```
-或直接：
-```cmd
-cmd /c "java -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -cp out com.mc.Main --dir run"
-```
-
-### 5. 控制台指令
-| 指令 | 说明 |
-|------|------|
-| `help` / `?` | 显示帮助 |
-| `plugins` / `pl` | 列出已加载插件 |
-| `version` / `ver` | 显示版本 |
-| `tps` | 显示 tick、任务数、事件处理器数 |
-| `say <消息>` | 广播消息 |
-| `stop` / `exit` | 关闭服务端 |
-| `/插件指令` | 插件注册的指令（如 `/lp`、 `/vault`） |
-
----
-
-## API 兼容性说明
-
-本内核实现了 **Bukkit API 核心子集**，重点覆盖：
-- `JavaPlugin` 生命周期：`onLoad` → `onEnable` → `onDisable`
-- `PluginManager`：插件加载、指令注册、事件注册、权限节点
-- `BukkitScheduler`：`runTask`、`runTaskLater`、`runTaskTimer`、异步对应方法，**返回 `BukkitTask`**
-- `ServicesManager`：`register`/`load`/`getRegistration`/`getKnownServices`
-- `Configuration`：`FileConfiguration`、`YamlConfiguration`、`MemorySection`
-- `Command` 体系：`CommandExecutor`（真实签名 `onCommand(sender, command, label, args)`）、`TabCompleter`、`PluginCommand`
-- 事件总线：`Event`、`Listener`、`EventPriority`、`@EventHandler`、同步分发
-- `OfflinePlayer` / `Player` / `Permission` / `PermissionDefault`
-- `Bukkit` 静态工具类：`getServer()`、`getPluginManager()`、`getScheduler()`、`getServicesManager()`、`getConsoleSender()`、`getOnlinePlayers()`、`broadcastMessage()` 等
-
-> **不支持**：任何依赖 NMS (`net.minecraft.*`)、CraftBukkit 内部实现、Mixin、Forge/Fabric 模组加载器核心逻辑的插件/模组。这些会在加载时报出明确的 `NoClassDefFoundError`/`ClassNotFoundException`，并在控制台给出「宿主未提供该类 / 插件未把该依赖打包进 JAR」等中文提示。
-
----
-
-## 扫描报告示例
-
-```
-======================================
-  Minecraft 服务端内核 v1.0.0
-  目标版本 MC 1.21.8
-  运行目录 E:\mc-server\run
-======================================
-发现 3 个插件文件，开始扫描
-识别插件 DemoPlugin v1.0.0（主类 com.demo.DemoPlugin）
-识别插件 LuckPerms v5.5.71（主类 me.lucko.luckperms.bukkit.loader.BukkitLoaderPlugin）
-识别插件 Vault v1.7.3-b131（主类 net.milkbowl.vault.Vault）
-扫描报告：
-  可运行：2  仅识别：0  失败：1  未知：0
-  [可运行] DemoPlugin v1.0.0
-  [可运行] Vault v1.7.3-b131
-  [需依赖] LuckPerms v5.5.71  缺少类: com/google/common/collect/ImmutableList, me/lucko/luckperms/lib/adventure/...
-```
-
----
-
-## 自带演示插件
-
-`test-plugin/` 是一个最小 `JavaPlugin`，演示：
-- `onLoad` / `onEnable` / `onDisable` 生命周期
-- `Listener` 监听 `PlayerJoinEvent`（重写加入消息为 `[欢迎] xxx 来到了服务器`）
-- `CommandExecutor` 实现 `/greet [名字]`、`/demo info|join|count|broadcast`
-- `BukkitScheduler` 周期任务（每 20 tick 打印心跳、在线人数）
-- `getDataFolder()` 写入 `enabled.txt`
-
-编译并打包：
-```cmd
-cd test-plugin
-javac -d out -encoding UTF-8 -cp ..\out src\main\java\com\demo\DemoPlugin.java
-copy src\main\resources\plugin.yml out\plugin.yml
-jar --create --file ..\run\plugins\DemoPlugin.jar -C out .
-```
-
----
-
-## 设计要点
-
-| 模块 | 关键点 |
-|------|--------|
-| **PluginClassLoader** | 父优先加载 `org.bukkit.*`、`io.papermc.*`、`net.kyori.*`、`com.destroystokyo.*`；其余类插件内部优先，实现插件间隔离 |
-| **LoadedPlugin** | 反射注入 `server/description/dataFolder/logger/file/enabled`，兜底写私有字段，兼容老旧插件 |
-| **JulBridge** | 拦截 `java.util.logging`，统一重定向到内核 `Log`（中文、带时间戳、去重） |
-| **PluginManagerImpl.registerEvents** | 实例+方法去重，防止手动注册+注解扫描双重注册 |
-| **McScheduler** | 20 TPS 主线程驱动同步任务，异步任务交给守护线程池，返回 `BukkitTask` 可取消 |
-| **ServicesManagerImpl** | 优先级队列，`load`/`getRegistration`/`getRegistrations`/`getKnownServices()` 全实现 |
-
----
-
-## 为什么不用 Paper/Spigot？
-
-- **学习价值**：从零写内核能彻底理解插件加载机制、类隔离、事件总线、调度器
-- **极简体积**：编译后 `out/` 不到 500KB，启动 < 1s，适合 CI/单元测试/插件原型验证
-- **可控性**：每一行代码可读、可改，遇到插件报错能精确定位到缺哪个 API
-- **扩展性**：`PluginLoader` 接口 + `PluginScanner` 已预留 Paper/Fabric/Forge 适配槽位，按同模式继续实现即可
-
----
-
-## 常见问题
-
-**Q: 插件报 `NoClassDefFoundError: org/bukkit/...` 怎么办？**  
-A: 说明内核缺该 API 类，请提 Issue 或自行在 `org.bukkit.*` 下补全。
-
-**Q: LuckPerms / 其它复杂插件加载失败？**  
-A: 它们依赖 Guava、Adventure、HikariCP 等第三方库，本内核不打包这些库。你可以：
-1. 把依赖 JAR 放入插件自身（Shade 打包）
-2. 或在内核 classpath 加入这些库（不推荐，违背零依赖初衷）
-
-**Q: 能跑模组？**  
-A: 不能。Fabric/Forge 需要 Mixin + 修补过的 Minecraft 类，本内核无网络/世界/实体实现。
-
-**Q: 如何自定义加载器？**  
-A: 实现 `com.mc.loader.PluginLoader` 接口，在 `PluginScanner` 注册即可。
-
----
-
-## 许可证
-
-MIT License — 详见 [LICENSE](LICENSE)
 
 ---
 
 ## 作者
 
-**chenhuitony**  
-GitHub: https://github.com/chenhuitony  
-如有建议或发现 Bug，欢迎提 Issue 或 PR！
+**chenhuitony** — https://github.com/chenhuitony

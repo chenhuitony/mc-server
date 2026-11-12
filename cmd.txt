@@ -1,7 +1,0 @@
-plugins
-demo info
-demo join Steve
-greet 小明
-demo count
-stop
-

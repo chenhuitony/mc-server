@@ -71,9 +71,9 @@ public class McScheduler implements BukkitScheduler {
             try {
                 t.runnable.run();
             } catch (Throwable e) {
-                com.mc.util.Log.error("任务 #" + t.id + "（插件 "
-                        + (t.owner == null ? "?" : t.owner.getName()) + "）异常："
-                        + e.getClass().getSimpleName() + ": " + e.getMessage());
+                com.mc.util.Log.error("error.task_exception", t.id,
+                        t.owner == null ? "?" : t.owner.getName(),
+                        e.getClass().getSimpleName() + ": " + e.getMessage());
             }
             if (t.cancelled) continue;
             if (t.period > 0) t.nextTick = currentTick + t.period;
@@ -137,8 +137,8 @@ public class McScheduler implements BukkitScheduler {
         try {
             t.runnable.run();
         } catch (Throwable e) {
-            com.mc.util.Log.error("异步任务 #" + t.id + " 异常："
-                    + e.getClass().getSimpleName() + ": " + e.getMessage());
+            com.mc.util.Log.error("error.task_exception", t.id, t.owner == null ? "?" : t.owner.getName(),
+                    e.getClass().getSimpleName() + ": " + e.getMessage());
         }
     }
 
